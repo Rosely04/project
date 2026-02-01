@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { getChildren, updateChildAseoStatus } from '../../lib/storage';
 import { Child } from '../../types';
-import { Droplets, User, Phone, MapPin, ListFilter as Filter } from 'lucide-react-native';
+import { Droplets } from 'lucide-react-native';
 
 type AseoFilter = 'all' | 'with_aseo' | 'without_aseo';
 
@@ -81,41 +81,15 @@ export default function AseoScreen() {
 
   const ChildAseoCard = ({ child }: { child: Child }) => (
     <View style={styles.childCard}>
-      <View style={styles.childHeader}>
+      <View style={styles.cardContentRow}>
+        
+        {/* Información Simplificada: Solo Nombre y Padre */}
         <View style={styles.childInfo}>
           <Text style={styles.childName}>{child.name}</Text>
-          <Text style={styles.childAge}>{child.age} años</Text>
+          <Text style={styles.parentName}>Padre: {child.parent_name}</Text>
         </View>
-        <View style={styles.aseoStatusBadge}>
-          <Droplets 
-            size={16} 
-            color={child.has_aseo ? '#06B6D4' : '#F59E0B'} 
-          />
-          <Text style={[
-            styles.statusText,
-            { color: child.has_aseo ? '#06B6D4' : '#F59E0B' }
-          ]}>
-            {child.has_aseo ? 'Con aseo' : 'Sin aseo'}
-          </Text>
-        </View>
-      </View>
-      
-      <View style={styles.childDetails}>
-        <View style={styles.detailRow}>
-          <User size={16} color="#6B7280" />
-          <Text style={styles.detailText}>{child.parent_name}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Phone size={16} color="#6B7280" />
-          <Text style={styles.detailText}>{child.parent_phone}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <MapPin size={16} color="#6B7280" />
-          <Text style={styles.detailText}>{child.address}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.cardActions}>
+        
+        {/* Botón de Acción */}
         <TouchableOpacity 
           style={[
             styles.aseoButton,
@@ -123,11 +97,12 @@ export default function AseoScreen() {
           ]}
           onPress={() => toggleAseoStatus(child)}
         >
-          <Droplets size={16} color="#FFFFFF" />
+          <Droplets size={20} color="#FFFFFF" />
           <Text style={styles.aseoButtonText}>
-            {child.has_aseo ? 'Marcar sin aseo' : 'Marcar con aseo'}
+            {child.has_aseo ? 'Quitar' : 'Asignar'}
           </Text>
         </TouchableOpacity>
+
       </View>
     </View>
   );
@@ -258,74 +233,47 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  childHeader: {
+  cardContentRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
   },
   childInfo: {
     flex: 1,
+    paddingRight: 10,
   },
   childName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  childAge: {
+  parentName: {
     fontSize: 14,
     color: '#6B7280',
-  },
-  aseoStatusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: '#F3F4F6',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  childDetails: {
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  detailText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#4B5563',
-  },
-  cardActions: {
-    marginTop: 12,
+    fontStyle: 'italic',
   },
   aseoButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 8,
+    minWidth: 100,
   },
   aseoButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: 6,
+    fontSize: 13,
   },
   emptyState: {
     alignItems: 'center',
