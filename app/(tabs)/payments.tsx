@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { getChildren, getPayments, savePayment, updateChildPaymentStatus } from '../../lib/storage';
 import { Child, Payment } from '../../types';
-import { DollarSign, CreditCard } from 'lucide-react-native';
+import { DollarSign, CreditCard, Check } from 'lucide-react-native';
 
 type PaymentFilter = 'all' | 'paid' | 'unpaid';
 
@@ -13,7 +13,7 @@ export default function PaymentsScreen() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [filteredChildren, setFilteredChildren] = useState<Child[]>([]);
   const [filter, setFilter] = useState<PaymentFilter>('all');
-  const [standardPayment, setStandardPayment] = useState(2500); // Pago estándar de $2500
+  const [standardPayment, setStandardPayment] = useState(2500);
 
   useEffect(() => {
     loadData();
@@ -24,6 +24,7 @@ export default function PaymentsScreen() {
   }, [children, filter]);
 
   const loadData = async () => {
+    // Al cargar, getChildren verificará internamente las fechas y actualizará el status a 'false' si pasó el mes
     const [childrenData, paymentsData] = await Promise.all([
       getChildren(),
       getPayments(),
@@ -34,24 +35,26 @@ export default function PaymentsScreen() {
 
   const filterChildren = () => {
     let filtered = children;
-    
     switch (filter) {
-      case 'paid':
-        filtered = filtered.filter(child => child.has_paid);
-        break;
-      case 'unpaid':
-        filtered = filtered.filter(child => !child.has_paid);
-        break;
-      default:
-        break;
+      case 'paid': filtered = filtered.filter(child => child.has_paid); break;
+      case 'unpaid': filtered = filtered.filter(child => !child.has_paid); break;
+      default: break;
     }
-    
     setFilteredChildren(filtered);
   };
 
   const handlePayment = async (child: Child) => {
-    if (!child.has_paid) {
-      // Si NO ha pagado, registrar pago estándar
+    if (child.has_paid) {
+      Alert.alert(
+        'Pago ya registrado',
+        `El pago de ${child.name} ya está registrado y no se puede modificar hasta el próximo mes.`,
+        [{ text: 'Entendido' }]
+      );
+      return;
+    }
+
+    // LOGICA CORREGIDA: Intentar pagar
+    try {
       const payment: Payment = {
         id: Date.now().toString(),
         child_id: child.id,
@@ -61,26 +64,20 @@ export default function PaymentsScreen() {
         description: 'Pago mensual estándar',
         created_at: new Date().toISOString(),
       };
+      
+      // savePayment arrojará error si ya pagó en los últimos 30 días
       await savePayment(payment);
-    } else {
-      // Si YA pagó, solo cambiar estado (para deshacer)
-      await updateChildPaymentStatus(child.id, false);
+      await loadData(); // Recargamos la UI
+    } catch (error: any) {
+      Alert.alert('No permitido', error.message);
     }
-    await loadData();
   };
 
-  const getCurrentMonthRevenue = () => {
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  
-  return payments.reduce((sum, payment) => {
-    const paymentDate = new Date(payment.payment_date);
-    if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
-      return sum + payment.amount;
-    }
-    return sum;
-  }, 0);
-};
+  // Función local para mostrar stats de pago del mes, aunque el dinero en Dashboard se acumula histórico
+  const getPotentialRevenue = () => {
+    const childrenPaid = children.filter(child => child.has_paid).length;
+    return childrenPaid * standardPayment;
+  };
 
   const FilterButton = ({ filterType, label }: { filterType: PaymentFilter; label: string }) => (
     <TouchableOpacity
@@ -100,36 +97,32 @@ export default function PaymentsScreen() {
   );
 
   const ChildPaymentCard = ({ child }: { child: Child }) => {
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  
-  const childPayments = payments.filter(p => p.child_id === child.id);
-  const currentMonthPayments = childPayments.filter(payment => {
-    const paymentDate = new Date(payment.payment_date);
-    return paymentDate.getMonth() === currentMonth &&  paymentDate.getFullYear() === currentYear;
-  });
-  const totalPaid = currentMonthPayments.reduce((sum, p) => sum + p.amount, 0);
+    const childPayments = payments.filter(p => p.child_id === child.id);
     return (
       <View style={styles.childCard}>
-        <View style={styles.childHeader}>
+        <View style={styles.cardContentRow}>
           <View style={styles.childInfo}>
             <Text style={styles.childName}>{child.name}</Text>
-            <Text style={styles.childParent}>{child.parent_name}</Text>
+            <Text style={styles.parentName}>Padre: {child.parent_name}</Text>
           </View>
-          <View style={styles.paymentStatusBadge}>
-            <Text style={[
-              styles.statusText,
-              { color: child.has_paid ? '#10B981' : '#EF4444' }
-            ]}>
-              {child.has_paid ? 'Pagado' : 'Pendiente'}
-            </Text>
-          </View>
+          <TouchableOpacity 
+            style={[
+              styles.paymentButton,
+              child.has_paid ? styles.paymentButtonPaid : styles.paymentButtonUnpaid
+            ]}
+            onPress={() => handlePayment(child)}
+          >
+            {child.has_paid ? (
+              <><Check size={20} color="#FFFFFF" /><Text style={styles.paymentButtonText}>OK</Text></>
+            ) : (
+              <><DollarSign size={20} color="#FFFFFF" /><Text style={styles.paymentButtonText}>Pagar ${standardPayment}</Text></>
+            )}
+          </TouchableOpacity>
         </View>
-
         {childPayments.length > 0 && (
           <View style={styles.paymentsSection}>
-            <Text style={styles.paymentsTitle}>Últimos pagos:</Text>
-            {childPayments.slice(-3).map((payment) => ( // Solo últimos 3 pagos
+            <Text style={styles.paymentsTitle}>Historial de pagos:</Text>
+            {childPayments.slice().reverse().slice(0, 3).map((payment) => (
               <View key={payment.id} style={styles.paymentItem}>
                 <View style={styles.paymentInfo}>
                   <Text style={styles.paymentAmount}>${payment.amount}</Text>
@@ -137,36 +130,34 @@ export default function PaymentsScreen() {
                 </View>
               </View>
             ))}
-            <Text style={styles.totalPaid}>Total mes actual: ${totalPaid}</Text>
           </View>
         )}
-
-        {/* SOLO UN BOTÓN COMO EN ASEO */}
-        <View style={styles.cardActions}>
-          <TouchableOpacity 
-            style={[
-              styles.paymentButton,
-              { backgroundColor: child.has_paid ? '#EF4444' : '#10B981' }
-            ]}
-            onPress={() => handlePayment(child)}
-          >
-            <Text style={styles.paymentButtonText}>
-              {child.has_paid ? 'Marcar sin pagar' : `Marcar como pagado ($${standardPayment})`}
-            </Text>
-          </TouchableOpacity>
-        </View>
       </View>
     );
   };
+
+  const stats = {
+    paid: children.filter(child => child.has_paid).length,
+    unpaid: children.filter(child => !child.has_paid).length,
+    total: children.length
+  };
+  const potentialRevenue = stats.paid * standardPayment;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Gestión de Pagos</Text>
-        <View style={styles.totalRevenue}>
-  <DollarSign size={20} color="#FFFFFF" />
-  <Text style={styles.totalRevenueText}>${getCurrentMonthRevenue().toLocaleString()}</Text>
-</View>
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>${potentialRevenue.toLocaleString()}</Text>
+            <Text style={styles.statLabel}>Total ({stats.paid} niños)</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{stats.paid}/{stats.total}</Text>
+            <Text style={styles.statLabel}>Pagados</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.filtersContainer}>
@@ -180,7 +171,9 @@ export default function PaymentsScreen() {
           <View style={styles.emptyState}>
             <CreditCard size={48} color="#D1D5DB" />
             <Text style={styles.emptyText}>
-              {filter === 'paid' ? 'No hay niños que hayan pagado' : filter === 'unpaid' ? 'Todos los niños han pagado' :'No hay niños registrados'}
+              {filter === 'paid' ? 'No hay niños que hayan pagado' : 
+               filter === 'unpaid' ? 'Todos los niños han pagado' :
+               'No hay niños registrados'}
             </Text>
           </View>
         ) : (
@@ -194,168 +187,170 @@ export default function PaymentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F9FAFB' 
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#10B981',
+  header: { 
+    padding: 20, 
+    paddingTop: 60, 
+    backgroundColor: '#10B981' 
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  title: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: '#FFFFFF', 
+    marginBottom: 12 
+  }, 
+  statsContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', 
+    borderRadius: 12, 
+    padding: 16 
   },
-  totalRevenue: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+  statItem: { 
+    flex: 1, 
+    alignItems: 'center' 
   },
-  totalRevenueText: {
-    marginLeft: 4,
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  statNumber: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: '#FFFFFF' 
+  }, 
+  statLabel: { 
+    fontSize: 12, 
+    color: '#E0F7FA', 
+    marginTop: 2, 
+    textAlign: 'center' 
   },
-  filtersContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+  statDivider: { 
+    width: 1, 
+    height: 30, 
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', 
+    marginHorizontal: 16 
   },
-  filterButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginHorizontal: 4,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
+  filtersContainer: { 
+    flexDirection: 'row', 
+    padding: 16, 
+    backgroundColor: '#FFFFFF' 
   },
-  filterButtonActive: {
-    backgroundColor: '#3B82F6',
+  filterButton: { 
+    flex: 1, 
+    paddingVertical: 8, 
+    paddingHorizontal: 16, 
+    marginHorizontal: 4, 
+    borderRadius: 8, 
+    backgroundColor: '#F3F4F6', 
+    alignItems: 'center' 
   },
-  filterButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+  filterButtonActive: { 
+    backgroundColor: '#10B981'
   },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
+  filterButtonText: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#6B7280' 
   },
-  content: {
-    flex: 1,
-    padding: 16,
+  filterButtonTextActive: { 
+    color: '#FFFFFF' 
   },
-  childCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+  content: { 
+    flex: 1, 
+    padding: 16 
   },
-  childHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+  childCard: { 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 12, 
+    padding: 16, 
+    marginBottom: 10, 
+    elevation: 2, 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 1 }, 
+    shadowOpacity: 0.1, 
+    shadowRadius: 2 
   },
-  childInfo: {
-    flex: 1,
+  cardContentRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
   },
-  childName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 2,
+  childInfo: { 
+    flex: 1, 
+    paddingRight: 10 
   },
-  childParent: {
-    fontSize: 14,
-    color: '#6B7280',
+  childName: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    color: '#1F2937', 
+    marginBottom: 4 
   },
-  paymentStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: '#F3F4F6',
+  parentName: { 
+    fontSize: 14, 
+    color: '#6B7280', 
+    fontStyle: 'italic' 
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
+  paymentButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    paddingVertical: 8, 
+    paddingHorizontal: 12, 
+    borderRadius: 8, 
+    minWidth: 120 
   },
-  paymentsSection: {
-    marginBottom: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+  paymentButtonPaid: { 
+    backgroundColor: '#10B981' 
   },
-  paymentsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+  paymentButtonUnpaid: { 
+    backgroundColor: '#3B82F6' 
   },
-  paymentItem: {
-    backgroundColor: '#F9FAFB',
-    padding: 8,
-    borderRadius: 6,
-    marginBottom: 6,
+  paymentButtonText: { 
+    color: '#FFFFFF', 
+    fontWeight: '600', 
+    marginLeft: 6, 
+    fontSize: 13 
   },
-  paymentInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  paymentsSection: 
+  { marginTop: 12, 
+    paddingTop: 12, 
+    borderTopWidth: 1, 
+    borderTopColor: '#E5E7EB' 
   },
-  paymentAmount: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#10B981',
+  paymentsTitle: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#374151', 
+    marginBottom: 8 
   },
-  paymentDate: {
-    fontSize: 12,
-    color: '#6B7280',
+  paymentItem: { 
+    backgroundColor: '#F9FAFB', 
+    padding: 8, 
+    borderRadius: 6, 
+    marginBottom: 6 
   },
-  totalPaid: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    textAlign: 'right',
-    marginTop: 4,
+  paymentInfo: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
   },
-  cardActions: {
-    marginTop: 12,
+  paymentAmount: { 
+    fontSize: 14, 
+    fontWeight: 'bold', 
+    color: '#10B981' 
   },
-  paymentButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
+  paymentDate: { 
+    fontSize: 12, 
+    color: '#6B7280' 
   },
-  paymentButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginTop: 16,
-    textAlign: 'center',
+  emptyState: { 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    padding: 40 },
+  emptyText: { 
+    fontSize: 16, 
+    color: '#6B7280', 
+    marginTop: 16, 
+    textAlign: 'center' 
   },
 });

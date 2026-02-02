@@ -7,6 +7,7 @@ export interface Child {
   address: string;
   has_paid: boolean;
   has_aseo: boolean;
+  last_payment_month?: string;
   classroom_id?: string;
   created_at: string;
 }

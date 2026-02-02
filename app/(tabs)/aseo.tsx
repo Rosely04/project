@@ -1,10 +1,10 @@
-//gestión de aseo
+//Gestion de aseo
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { getChildren, updateChildAseoStatus } from '../../lib/storage';
 import { Child } from '../../types';
-import { Droplets } from 'lucide-react-native';
+import { Droplets, Check } from 'lucide-react-native';
 
 type AseoFilter = 'all' | 'with_aseo' | 'without_aseo';
 
@@ -23,6 +23,7 @@ export default function AseoScreen() {
   }, [children, filter]);
 
   const loadChildren = async () => {
+    // Al cargar, storage.ts revisará automáticamente las fechas y reseteará si pasaron 30 días
     const data = await getChildren();
     setChildren(data);
   };
@@ -35,7 +36,6 @@ export default function AseoScreen() {
 
   const filterChildren = () => {
     let filtered = children;
-    
     switch (filter) {
       case 'with_aseo':
         filtered = filtered.filter(child => child.has_aseo);
@@ -46,14 +46,29 @@ export default function AseoScreen() {
       default:
         break;
     }
-    
     setFilteredChildren(filtered);
   };
 
-  const toggleAseoStatus = async (child: Child) => {
-    const newStatus = !child.has_aseo;
-    await updateChildAseoStatus(child.id, newStatus);
-    await loadChildren();
+  const handleAseoAction = async (child: Child) => {
+    if (!child.has_aseo) {
+      // LOGICA CORREGIDA: Intentamos guardar, si storage dice "no" (porque no pasaron 30 dias), mostramos error
+      try {
+        await updateChildAseoStatus(child.id, true);
+        await loadChildren();
+      } catch (error: any) {
+        Alert.alert(
+          'No permitido',
+          error.message, // "Ya se registró el aseo en los últimos 30 días"
+          [{ text: 'Entendido' }]
+        );
+      }
+    } else {
+      Alert.alert(
+        'Aseo ya asignado',
+        `El aseo de ${child.name} ya está asignado y no se puede modificar hasta el próximo mes.`,
+        [{ text: 'Entendido' }]
+      );
+    }
   };
 
   const getAseoStats = () => {
@@ -82,27 +97,23 @@ export default function AseoScreen() {
   const ChildAseoCard = ({ child }: { child: Child }) => (
     <View style={styles.childCard}>
       <View style={styles.cardContentRow}>
-        
-        {/* Información Simplificada: Solo Nombre y Padre */}
         <View style={styles.childInfo}>
           <Text style={styles.childName}>{child.name}</Text>
           <Text style={styles.parentName}>Padre: {child.parent_name}</Text>
         </View>
-        
-        {/* Botón de Acción */}
         <TouchableOpacity 
           style={[
             styles.aseoButton,
-            { backgroundColor: child.has_aseo ? '#F59E0B' : '#06B6D4' }
+            child.has_aseo ? styles.aseoButtonAssigned : styles.aseoButtonUnassigned
           ]}
-          onPress={() => toggleAseoStatus(child)}
+          onPress={() => handleAseoAction(child)}
         >
-          <Droplets size={20} color="#FFFFFF" />
-          <Text style={styles.aseoButtonText}>
-            {child.has_aseo ? 'Quitar' : 'Asignar'}
-          </Text>
+          {child.has_aseo ? (
+            <><Check size={20} color="#FFFFFF" /><Text style={styles.aseoButtonText}>OK</Text></>
+          ) : (
+            <><Droplets size={20} color="#FFFFFF" /><Text style={styles.aseoButtonText}>Asignar</Text></>
+          )}
         </TouchableOpacity>
-
       </View>
     </View>
   );
@@ -268,6 +279,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     minWidth: 100,
+  },
+  aseoButtonAssigned: {
+    backgroundColor: '#10B981', // Verde para "OK"
+  },
+  aseoButtonUnassigned: {
+    backgroundColor: '#06B6D4', // Azul para "Asignar"
   },
   aseoButtonText: {
     color: '#FFFFFF',

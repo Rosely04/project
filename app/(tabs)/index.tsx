@@ -1,10 +1,9 @@
 //Dashboard principal
 // correr :npx.cmd expo start
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { getChildren, getWorkers, getPayments, getClassrooms } from '../../lib/storage';
-import { Child, Worker, Payment, Classroom } from '../../types';
+import { useFocusEffect } from '@react-navigation/native'; // Para recargar al volver
+import { getChildren, getWorkers, getClassrooms, getFinancialSummary } from '../../lib/storage';
 import { Users, CreditCard, DollarSign, UserCheck, Droplets, School } from 'lucide-react-native';
 
 interface Stats {
@@ -15,7 +14,7 @@ interface Stats {
   childrenWithoutAseo: number;
   totalRevenue: number;
   totalWorkers: number;
-  totalSalaries: number;
+  totalSalaries: number; // Esto ahora es el gasto ACUMULADO calculado
   totalClassrooms: number;
   childrenWithoutClassroom: number;
 }
@@ -35,17 +34,16 @@ export default function Dashboard() {
   });
   const [refreshing, setRefreshing] = useState(false);
 
+  // LOGICA NUEVA INYECTADA EN TU DISEÑO ANTIGUO
   const loadStats = async () => {
     try {
-      const [children, workers, payments, classrooms] = await Promise.all([
-        getChildren(),
+      const [children, workers, classrooms, finances] = await Promise.all([
+        getChildren(),    // Valida fechas de 30 días automáticamente
         getWorkers(),
-        getPayments(),
         getClassrooms(),
+        getFinancialSummary(), // Trae la data financiera acumulada histórica
       ]);
 
-      const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
-      const totalSalaries = workers.reduce((sum, worker) => sum + worker.salary, 0);
       const childrenPaid = children.filter(child => child.has_paid).length;
       const childrenUnpaid = children.length - childrenPaid;
       const childrenWithAseo = children.filter(child => child.has_aseo).length;
@@ -58,9 +56,9 @@ export default function Dashboard() {
         childrenUnpaid,
         childrenWithAseo,
         childrenWithoutAseo,
-        totalRevenue,
+        totalRevenue: finances.totalRevenue,          // USAMOS LA LOGICA FINANCIERA NUEVA
         totalWorkers: workers.length,
-        totalSalaries,
+        totalSalaries: finances.totalSalariesExpenses, // USAMOS LA LOGICA FINANCIERA NUEVA
         totalClassrooms: classrooms.length,
         childrenWithoutClassroom,
       });
@@ -75,9 +73,12 @@ export default function Dashboard() {
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    loadStats();
-  }, []);
+  // Se ejecuta al entrar a la pantalla para actualizar datos inmediatamente
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [])
+  );
 
   const StatCard = ({ icon, title, value, color = '#3B82F6' }: { icon: React.ReactNode; title: string; value: string | number; color?: string }) => (
     <View style={[styles.statCard, { borderLeftColor: color }]}>
@@ -90,6 +91,9 @@ export default function Dashboard() {
       </View>
     </View>
   );
+
+  // Cálculo del Balance Neto para mostrar en colores
+  const balance = stats.totalRevenue - stats.totalSalaries;
 
   return (
     <ScrollView 
@@ -113,7 +117,7 @@ export default function Dashboard() {
         
         <StatCard
           icon={<UserCheck size={24} color="#10B981" />}
-          title="Niños que Pagaron"
+          title="Niños que Pagaron (Mes)"
           value={stats.childrenPaid}
           color="#10B981"
         />
@@ -139,32 +143,33 @@ export default function Dashboard() {
           color="#F59E0B"
         />
         
+        {/* FINANZAS ACUMULADAS */}
         <StatCard
           icon={<DollarSign size={24} color="#10B981" />}
-          title="Total Recaudado"
+          title="Total Recaudado (Histórico)"
           value={`$${stats.totalRevenue.toLocaleString()}`}
           color="#10B981"
         />
         
         <StatCard
-          icon={<CreditCard size={24} color="#3B82F6" />}
-          title="Total Trabajadores"
-          value={stats.totalWorkers}
-          color="#3B82F6"
-        />
-        
-        <StatCard
           icon={<DollarSign size={24} color="#F59E0B" />}
-          title="Total Salarios"
+          title="Total Gastos Salarios (Histórico)"
           value={`$${stats.totalSalaries.toLocaleString()}`}
           color="#F59E0B"
         />
 
         <StatCard
-          icon={<School size={24} color="#F59E0B" />}
+          icon={<CreditCard size={24} color="#3B82F6" />}
+          title="Trabajadores Activos"
+          value={stats.totalWorkers}
+          color="#3B82F6"
+        />
+
+        <StatCard
+          icon={<School size={24} color="#8B5CF6" />}
           title="Total de Aulas"
           value={stats.totalClassrooms}
-          color="#F59E0B"
+          color="#8B5CF6"
         />
 
         <StatCard
@@ -176,7 +181,7 @@ export default function Dashboard() {
       </View>
 
       <View style={styles.summary}>
-        <Text style={styles.summaryTitle}>Resumen Financiero</Text>
+        <Text style={styles.summaryTitle}>Resumen Financiero Global</Text>
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Ingresos:</Text>
@@ -185,7 +190,7 @@ export default function Dashboard() {
             </Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Gastos en Salarios:</Text>
+            <Text style={styles.summaryLabel}>Gastos (Salarios):</Text>
             <Text style={[styles.summaryValue, { color: '#EF4444' }]}>
               -${stats.totalSalaries.toLocaleString()}
             </Text>
@@ -193,9 +198,9 @@ export default function Dashboard() {
           <View style={[styles.summaryRow, styles.summaryTotal]}>
             <Text style={styles.summaryTotalLabel}>Balance:</Text>
             <Text style={[styles.summaryTotalValue, { 
-              color: stats.totalRevenue - stats.totalSalaries >= 0 ? '#10B981' : '#EF4444' 
+              color: balance >= 0 ? '#10B981' : '#EF4444' 
             }]}>
-              ${(stats.totalRevenue - stats.totalSalaries).toLocaleString()}
+              ${balance.toLocaleString()}
             </Text>
           </View>
         </View>
@@ -204,6 +209,7 @@ export default function Dashboard() {
   );
 }
 
+// TU ESTILO ORIGINAL INTACTO
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -262,6 +268,7 @@ const styles = StyleSheet.create({
   summary: {
     padding: 16,
     paddingTop: 0,
+    marginBottom: 20
   },
   summaryTitle: {
     fontSize: 20,
