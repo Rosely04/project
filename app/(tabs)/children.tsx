@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Linking } from 'react-native';
 import { getChildren, saveChild, deleteChild, getClassrooms } from '../../lib/storage';
-import { Child, Classroom } from '../../src/types';
+import { Child, Classroom } from '../../types';
 import { Plus, Pencil, Trash2, User, Phone, MapPin, Search, School, MessageCircleMore, AlertCircle } from 'lucide-react-native';
 
 export default function ChildrenScreen() {

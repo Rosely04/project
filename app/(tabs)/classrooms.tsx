@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { getClassrooms, saveClassroom, deleteClassroom, getWorkers, getChildren, updateChildClassroom } from '../../lib/storage';
-import { Classroom, Worker, Child } from '../../src/types';
+import { Classroom, Worker, Child } from '../../types';
 import { Plus, Pencil, Trash2, Users, School, GraduationCap } from 'lucide-react-native';
 
 export default function ClassroomsScreen() {

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { getChildren, getPayments, savePayment, updateChildPaymentStatus } from '../../lib/storage';
-import { Child, Payment } from '../../src/types';
+import { Child, Payment } from '../../types';
 import { DollarSign, CreditCard, Check } from 'lucide-react-native';
 
 type PaymentFilter = 'all' | 'paid' | 'unpaid';
