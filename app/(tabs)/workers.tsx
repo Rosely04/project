@@ -1,329 +1,30 @@
-//Gestión de Trabajadores
-
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Linking } from 'react-native';
-import { getWorkers, saveWorker, deleteWorker } from '../../lib/storage';
-import { Worker } from '../../src/types';
-import { Plus, Pencil, Trash2, User, Phone, Mail as MailIcon, DollarSign, Calendar, Briefcase, MessageCircleMore, Mail } from 'lucide-react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
+import { Plus, DollarSign, Briefcase } from 'lucide-react-native';
+import { useWorkers } from '../../src/hooks/useWorkers';
+import { WorkerCard } from '../../src/components/workers/WorkerCard';
 
 export default function WorkersScreen() {
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    position: '',
-    phone: '',
-    email: '',
-    salary: '',
-    hire_date: '',
-  });
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
-
-  useEffect(() => {
-    loadWorkers();
-  }, []);
-
-  const loadWorkers = async () => {
-    const data = await getWorkers();
-    setWorkers(data);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      position: '',
-      phone: '',
-      email: '',
-      salary: '',
-      hire_date: '',
-    });
-    setEditingWorker(null);
-  };
-
-  const openModal = (worker?: Worker) => {
-    if (worker) {
-      setEditingWorker(worker);
-      setFormData({
-        name: worker.name,
-        position: worker.position,
-        phone: worker.phone,
-        email: worker.email || '',
-        salary: worker.salary.toString(),
-        hire_date: worker.hire_date,
-      });
-    } else {
-      resetForm();
-      // Set today's date as default hire date
-      const today = new Date().toISOString().split('T')[0];
-      setFormData(prev => ({ ...prev, hire_date: today }));
-    }
-    setModalVisible(true);
-  };
-
-  const closeModal = () => {
-    setModalVisible(false);
-    resetForm();
-  };
-
-  const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
-
-    // Validación Nombre Completo 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Nombre es obligatorio';
-    } else if (!/^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+$/.test(formData.name)) {
-      newErrors.name = 'El nombre solo puede contener letras y espacios';
-    }
-
-    // Validación Cargo 
-    if (!formData.position.trim()) {
-      newErrors.position = 'Cargo es obligatorio';
-    } else if (!/^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+$/.test(formData.position)) {
-      newErrors.position = 'El cargo solo puede contener letras';
-    }
-
-    // Validación Teléfono 
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'El teléfono es obligatorio';
-    } else if (!/^\+53\d{8}$/.test(formData.phone)) {
-      newErrors.phone = 'Formato: +53xxxxxxxx (8 números después del +53)';
-    }
-
-    // Validación Email (OPCIONAL, solo si está presente)
-    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Formato de email inválido';
-    }
-
-    // Validación Salario (solo números positivos)
-    if (!formData.salary.trim()) {
-      newErrors.salary = 'Salario es obligatorio';
-    } else if (!/^\d+$/.test(formData.salary)) {
-      newErrors.salary = 'El salario solo puede contener números';
-    } else if (parseFloat(formData.salary) <= 0) {
-      newErrors.salary = 'El salario debe ser mayor a 0';
-    }
-
-    // Validación Fecha
-    if (!formData.hire_date.trim()) {
-      newErrors.hire_date = 'Fecha de contratación es obligatoria';
-    } else {
-      const date = new Date(formData.hire_date);
-      if (isNaN(date.getTime())) {
-        newErrors.hire_date = 'Fecha inválida';
-      } else if (date > new Date()) {
-        newErrors.hire_date = 'La fecha no puede ser futura';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSave = async () => {
-    // Validar antes de guardar
-    if (!validateForm()) {
-      Alert.alert('Error', 'Por favor corrige los errores en el formulario');
-      return;
-    }
-
-    const workerData: Worker = {
-      id: editingWorker?.id || Date.now().toString(),
-      name: formData.name.trim(),
-      position: formData.position.trim(),
-      phone: formData.phone.trim(),
-      email: formData.email.trim() || '',
-      salary: parseFloat(formData.salary),
-      hire_date: formData.hire_date,
-      created_at: editingWorker?.created_at || new Date().toISOString(),
-    };
-
-    await saveWorker(workerData);
-    await loadWorkers();
-    closeModal();
-  };
-
-  const handleDelete = (worker: Worker) => {
-    Alert.alert(
-      'Confirmar eliminación',
-      `¿Estás seguro de que deseas eliminar a ${worker.name}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Eliminar', 
-          style: 'destructive',
-          onPress: async () => {
-            await deleteWorker(worker.id);
-            await loadWorkers();
-          }
-        },
-      ]
-    );
-  };
-
-  const openWhatsApp = (worker: Worker) => {
-    if (!worker.phone || worker.phone === '+53') {
-      Alert.alert('Error', 'Número de teléfono no válido');
-      return;
-    }
-    
-    const phoneNumber = worker.phone.replace(/\s+/g, '').replace('+', '');
-    
-    const whatsappUrl = `whatsapp://send?phone=${phoneNumber}`;
-    
-    Alert.alert(
-      'Enviar WhatsApp',
-      `¿Deseas enviar un mensaje a ${worker.name} (${worker.phone})?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Abrir WhatsApp',
-          onPress: () => {
-            Linking.canOpenURL(whatsappUrl).then(supported => {
-              if (supported) {
-                return Linking.openURL(whatsappUrl);
-              } else {
-                return Linking.openURL(`https://wa.me/${phoneNumber}`);
-              }
-            }).catch(err => {
-              console.error('Error al abrir WhatsApp:', err);
-              Alert.alert('Error', 'No se pudo abrir WhatsApp. Asegúrate de tener la app instalada.');
-            });
-          }
-        }
-      ]
-    );
-  };
-
-  const openEmail = (worker: Worker) => {
-    if (!worker.email || !worker.email.includes('@')) {
-      Alert.alert('Error', 'El trabajador no tiene una dirección de email registrada');
-      return;
-    }
-    
-    const emailUrl = `mailto:${worker.email}`;
-    
-    Alert.alert(
-      'Enviar Email',
-      `¿Deseas enviar un correo a ${worker.name} (${worker.email})?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Abrir Correo',
-          onPress: () => {
-            Linking.canOpenURL(emailUrl).then(supported => {
-              if (supported) {
-                return Linking.openURL(emailUrl);
-              } else {
-                Alert.alert('Error', 'No se pudo abrir la aplicación de correo.');
-              }
-            }).catch(err => {
-              console.error('Error al abrir email:', err);
-              Alert.alert('Error', 'No se pudo abrir la aplicación de correo.');
-            });
-          }
-        }
-      ]
-    );
-  };
-
-  const getTotalSalaries = (): number => {
-    return workers.reduce((sum: number, worker: Worker) => sum + worker.salary, 0);
-  };
-
-  const formatDate = (dateString: string) => {
-    if (!dateString || dateString.trim() === '') {
-      return 'Fecha no disponible';
-    }
-    
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return 'Fecha inválida';
-      }
-      return date.toLocaleDateString('es-ES');
-    } catch (error) {
-      console.error('Error formateando fecha:', error);
-      return 'Fecha inválida';
-    }
-  };
-
-  const WorkerCard = ({ worker }: { worker: Worker }) => (
-    <View style={styles.workerCard}>
-      <View style={styles.workerHeader}>
-        <View style={styles.workerInfo}>
-          <Text style={styles.workerName}>{worker.name || 'Sin nombre'}</Text>
-          <Text style={styles.workerPosition}>{worker.position || 'Sin cargo'}</Text>
-        </View>
-        <View style={styles.workerActions}>
-          {/* Botón de WhatsApp */}
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => openWhatsApp(worker)}
-            disabled={!worker.phone || worker.phone === '+53'}
-          >
-            <MessageCircleMore size={18} color="#25D366" />
-          </TouchableOpacity>
-          
-          {/* Botón de Email - SOLO si tiene email */}
-          {worker.email && worker.email.includes('@') && (
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => openEmail(worker)}
-            >
-              <Mail size={18} color="#EA4335" />
-            </TouchableOpacity>
-          )}
-          
-          {/* Botón de editar */}
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => openModal(worker)}
-          >
-            <Pencil size={18} color="#3B82F6" />
-          </TouchableOpacity>
-          
-          {/* Botón de eliminar */}
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => handleDelete(worker)}
-          >
-            <Trash2 size={18} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      <View style={styles.workerDetails}>
-        {worker.phone && (
-          <View style={styles.detailRow}>
-            <Phone size={16} color="#6B7280" />
-            <Text style={styles.detailText}>{worker.phone || 'Sin teléfono'}</Text>
-          </View>
-        )}
-        {worker.email && worker.email.includes('@') && (
-          <View style={styles.detailRow}>
-            <MailIcon size={16} color="#6B7280" />
-            <Text style={styles.detailText}>{worker.email}</Text>
-          </View>
-        )}
-        <View style={styles.detailRow}>
-          <DollarSign size={16} color="#10B981" />
-          <Text style={styles.salaryText}>
-            ${worker.salary ? worker.salary.toLocaleString() : '0'}/mes
-          </Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Calendar size={16} color="#6B7280" />
-          <Text style={styles.detailText}>
-            Desde: {worker.hire_date ? formatDate(worker.hire_date) : 'No disponible'}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
+  const {
+    workers,
+    modalVisible,
+    editingWorker,
+    formData,
+    setFormData,
+    errors,
+    setErrors,
+    openModal,
+    closeModal,
+    handleSave,
+    handleDelete,
+    openWhatsApp,
+    openEmail,
+    getTotalSalaries
+  } = useWorkers();
 
   return (
     <View style={styles.container}>
+      {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Trabajadores</Text>
@@ -342,6 +43,7 @@ export default function WorkersScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* LISTA DE TRABAJADORES */}
       <ScrollView style={styles.content}>
         {workers.length === 0 ? (
           <View style={styles.emptyState}>
@@ -351,11 +53,19 @@ export default function WorkersScreen() {
           </View>
         ) : (
           workers.map((worker) => (
-            <WorkerCard key={worker.id} worker={worker} />
+            <WorkerCard 
+              key={worker.id} 
+              worker={worker} 
+              onEdit={openModal}
+              onDelete={handleDelete}
+              onWhatsApp={openWhatsApp}
+              onEmail={openEmail}
+            />
           ))
         )}
       </ScrollView>
 
+      {/* MODAL AGREGAR / EDITAR */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -409,7 +119,7 @@ export default function WorkersScreen() {
                 style={[styles.input, errors.phone && styles.inputError]}
                 value={formData.phone}
                 onChangeText={(text) => {
-                  // Forzar formato +53
+                  // Lógica para forzar formato +53 (Mantenida en la vista para UX fluida)
                   let formattedText = text;
                   if (text) {
                     if (text.startsWith('+53')) {
@@ -525,61 +235,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
-  },
-  workerCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  workerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  workerInfo: {
-    flex: 1,
-  },
-  workerName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  workerPosition: {
-    fontSize: 14,
-    color: '#8B5CF6',
-    fontWeight: '600',
-  },
-  workerActions: {
-    flexDirection: 'row',
-  },
-  actionButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  workerDetails: {},
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  detailText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#4B5563',
-  },
-  salaryText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#10B981',
   },
   emptyState: {
     alignItems: 'center',
