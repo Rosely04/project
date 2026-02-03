@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { getChildren, updateChildAseoStatus } from '../../lib/storage';
-import { Child } from '../../types';
+import { Child } from '../../src/types';
 import { Droplets, Check } from 'lucide-react-native';
 
 type AseoFilter = 'all' | 'with_aseo' | 'without_aseo';

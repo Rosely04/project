@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Linking } from 'react-native';
 import { getWorkers, saveWorker, deleteWorker } from '../../lib/storage';
-import { Worker } from '../../types';
+import { Worker } from '../../src/types';
 import { Plus, Pencil, Trash2, User, Phone, Mail as MailIcon, DollarSign, Calendar, Briefcase, MessageCircleMore, Mail } from 'lucide-react-native';
 
 export default function WorkersScreen() {
