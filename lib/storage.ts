@@ -1,5 +1,5 @@
 import { getDatabase } from './database';
-import { Child, Worker, Payment, Classroom } from '../types';
+import { Child, Worker, Payment, Classroom } from '../src/types';
 
 // ==========================================
 // HELPERS (Validaciones de fechas y reglas)
