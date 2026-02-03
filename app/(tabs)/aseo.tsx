@@ -1,82 +1,22 @@
-//Gestion de aseo
-
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
-import { getChildren, updateChildAseoStatus } from '../../lib/storage';
-import { Child } from '../../src/types';
-import { Droplets, Check } from 'lucide-react-native';
-
-type AseoFilter = 'all' | 'with_aseo' | 'without_aseo';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { Droplets } from 'lucide-react-native';
+import { useAseo, AseoFilter } from '../../src/hooks/useAseo';
+import { ChildAseoCard } from '../../src/components/aseo/ChildAseoCard';
 
 export default function AseoScreen() {
-  const [children, setChildren] = useState<Child[]>([]);
-  const [filteredChildren, setFilteredChildren] = useState<Child[]>([]);
-  const [filter, setFilter] = useState<AseoFilter>('all');
-  const [refreshing, setRefreshing] = useState(false);
+  // Instanciamos el ViewModel
+  const {
+    filteredChildren,
+    filter,
+    setFilter,
+    refreshing,
+    onRefresh,
+    handleAseoAction,
+    stats
+  } = useAseo();
 
-  useEffect(() => {
-    loadChildren();
-  }, []);
-
-  useEffect(() => {
-    filterChildren();
-  }, [children, filter]);
-
-  const loadChildren = async () => {
-    // Al cargar, storage.ts revisará automáticamente las fechas y reseteará si pasaron 30 días
-    const data = await getChildren();
-    setChildren(data);
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadChildren();
-    setRefreshing(false);
-  };
-
-  const filterChildren = () => {
-    let filtered = children;
-    switch (filter) {
-      case 'with_aseo':
-        filtered = filtered.filter(child => child.has_aseo);
-        break;
-      case 'without_aseo':
-        filtered = filtered.filter(child => !child.has_aseo);
-        break;
-      default:
-        break;
-    }
-    setFilteredChildren(filtered);
-  };
-
-  const handleAseoAction = async (child: Child) => {
-    if (!child.has_aseo) {
-      // LOGICA CORREGIDA: Intentamos guardar, si storage dice "no" (porque no pasaron 30 dias), mostramos error
-      try {
-        await updateChildAseoStatus(child.id, true);
-        await loadChildren();
-      } catch (error: any) {
-        Alert.alert(
-          'No permitido',
-          error.message, // "Ya se registró el aseo en los últimos 30 días"
-          [{ text: 'Entendido' }]
-        );
-      }
-    } else {
-      Alert.alert(
-        'Aseo ya asignado',
-        `El aseo de ${child.name} ya está asignado y no se puede modificar hasta el próximo mes.`,
-        [{ text: 'Entendido' }]
-      );
-    }
-  };
-
-  const getAseoStats = () => {
-    const withAseo = children.filter(child => child.has_aseo).length;
-    const withoutAseo = children.length - withAseo;
-    return { withAseo, withoutAseo, total: children.length };
-  };
-
+  // Componente interno pequeño para los botones de filtro
   const FilterButton = ({ filterType, label }: { filterType: AseoFilter; label: string }) => (
     <TouchableOpacity
       style={[
@@ -94,34 +34,9 @@ export default function AseoScreen() {
     </TouchableOpacity>
   );
 
-  const ChildAseoCard = ({ child }: { child: Child }) => (
-    <View style={styles.childCard}>
-      <View style={styles.cardContentRow}>
-        <View style={styles.childInfo}>
-          <Text style={styles.childName}>{child.name}</Text>
-          <Text style={styles.parentName}>Padre: {child.parent_name}</Text>
-        </View>
-        <TouchableOpacity 
-          style={[
-            styles.aseoButton,
-            child.has_aseo ? styles.aseoButtonAssigned : styles.aseoButtonUnassigned
-          ]}
-          onPress={() => handleAseoAction(child)}
-        >
-          {child.has_aseo ? (
-            <><Check size={20} color="#FFFFFF" /><Text style={styles.aseoButtonText}>OK</Text></>
-          ) : (
-            <><Droplets size={20} color="#FFFFFF" /><Text style={styles.aseoButtonText}>Asignar</Text></>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const stats = getAseoStats();
-
   return (
     <View style={styles.container}>
+      {/* HEADER con Estadísticas */}
       <View style={styles.header}>
         <Text style={styles.title}>Gestión de Aseo</Text>
         <View style={styles.statsContainer}>
@@ -137,12 +52,14 @@ export default function AseoScreen() {
         </View>
       </View>
 
+      {/* FILTROS */}
       <View style={styles.filtersContainer}>
         <FilterButton filterType="all" label="Todos" />
         <FilterButton filterType="with_aseo" label="Con aseo" />
         <FilterButton filterType="without_aseo" label="Sin aseo" />
       </View>
 
+      {/* LISTA */}
       <ScrollView 
         style={styles.content}
         refreshControl={
@@ -160,7 +77,11 @@ export default function AseoScreen() {
           </View>
         ) : (
           filteredChildren.map((child) => (
-            <ChildAseoCard key={child.id} child={child} />
+            <ChildAseoCard 
+              key={child.id} 
+              child={child} 
+              onAction={handleAseoAction} 
+            />
           ))
         )}
       </ScrollView>
@@ -168,6 +89,7 @@ export default function AseoScreen() {
   );
 }
 
+// Estilos de la pantalla (layout, header, filtros, empty state)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -239,58 +161,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
-  },
-  childCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  cardContentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  childInfo: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  childName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  parentName: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontStyle: 'italic',
-  },
-  aseoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    minWidth: 100,
-  },
-  aseoButtonAssigned: {
-    backgroundColor: '#10B981', // Verde para "OK"
-  },
-  aseoButtonUnassigned: {
-    backgroundColor: '#06B6D4', // Azul para "Asignar"
-  },
-  aseoButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginLeft: 6,
-    fontSize: 13,
   },
   emptyState: {
     alignItems: 'center',
