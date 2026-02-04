@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // <--- Agrega useCallback
 import { Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native'; // <--- Agrega este import
 import { getChildren, updateChildAseoStatus } from '../../lib/storage';
 import { Child } from '../types';
 
@@ -12,21 +13,29 @@ export const useAseo = () => {
   const [filter, setFilter] = useState<AseoFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
 
-  // --- EFECTOS ---
-  useEffect(() => {
-    loadChildren();
-  }, []);
+  // --- LÓGICA DE CARGA ---
+  const loadChildren = async () => {
+    try {
+      const data = await getChildren();
+      setChildren(data);
+    } catch (error) {
+      console.error("Error cargando niños en aseo:", error);
+    }
+  };
 
+  // --- EFECTOS ---
+  
+  // CAMBIO PRINCIPAL: Usamos useFocusEffect en lugar de useEffect
+  useFocusEffect(
+    useCallback(() => {
+      loadChildren();
+    }, [])
+  );
+
+  // Este se mantiene igual (filtrar cuando cambia la data)
   useEffect(() => {
     filterChildren();
   }, [children, filter]);
-
-  // --- LÓGICA DE CARGA ---
-  const loadChildren = async () => {
-    // Al cargar, storage.ts revisará automáticamente las fechas
-    const data = await getChildren();
-    setChildren(data);
-  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -50,23 +59,19 @@ export const useAseo = () => {
     setFilteredChildren(filtered);
   };
 
-  // --- ACCIONES (Validaciones y Base de Datos) ---
+  // --- ACCIONES ---
   const handleAseoAction = async (child: Child) => {
     if (!child.has_aseo) {
       try {
         await updateChildAseoStatus(child.id, true);
-        await loadChildren();
+        await loadChildren(); // Recarga después de actualizar
       } catch (error: any) {
-        Alert.alert(
-          'No permitido',
-          error.message, // "Ya se registró el aseo en los últimos 30 días"
-          [{ text: 'Entendido' }]
-        );
+        Alert.alert('No permitido', error.message, [{ text: 'Entendido' }]);
       }
     } else {
       Alert.alert(
         'Aseo ya asignado',
-        `El aseo de ${child.name} ya está asignado y no se puede modificar hasta el próximo mes.`,
+        `El aseo de ${child.name} ya está asignado.`,
         [{ text: 'Entendido' }]
       );
     }

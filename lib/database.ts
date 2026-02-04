@@ -11,22 +11,38 @@ export const initDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
   try {
     db = await SQLite.openDatabaseAsync('circulo_infantil.db');
 
+    // Habilitamos Foreign Keys (Indispensable para CASCADE)
     await db.execAsync(`
       PRAGMA journal_mode = WAL;
       PRAGMA foreign_keys = ON;
 
-      -- AULAS: El nombre debe ser único
-      CREATE TABLE IF NOT EXISTS classrooms (
+      -- TRABAJADORES
+      -- No tiene dependencias padre.
+      CREATE TABLE IF NOT EXISTS workers (
         id TEXT PRIMARY KEY NOT NULL,
-        name TEXT NOT NULL UNIQUE, 
-        teacher_id TEXT NOT NULL,
-        teacher_name TEXT NOT NULL,
-        max_capacity INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        position TEXT NOT NULL,
+        phone TEXT NOT NULL UNIQUE,
+        email TEXT UNIQUE,
+        salary REAL NOT NULL,
+        hire_date TEXT NOT NULL,
         created_at TEXT NOT NULL
       );
 
-      -- NIÑOS: Se añade last_aseo_date para la regla de los 30 días
-      -- Nota: La restricción de nombre único por padre se maneja mejor en storage.ts
+      -- AULAS
+      -- Si se borra el Profesor (worker), teacher_id se vuelve NULL, pero el aula NO se borra.
+      CREATE TABLE IF NOT EXISTS classrooms (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL UNIQUE, 
+        teacher_id TEXT, 
+        teacher_name TEXT,
+        max_capacity INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (teacher_id) REFERENCES workers(id) ON DELETE SET NULL
+      );
+
+      -- NIÑOS
+      -- Si se borra el Aula, classroom_id se vuelve NULL, pero el niño NO se borra.
       CREATE TABLE IF NOT EXISTS children (
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL,
@@ -42,18 +58,8 @@ export const initDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
         FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE SET NULL
       );
 
-      -- TRABAJADORES: Teléfono y Email únicos
-      CREATE TABLE IF NOT EXISTS workers (
-        id TEXT PRIMARY KEY NOT NULL,
-        name TEXT NOT NULL,
-        position TEXT NOT NULL,
-        phone TEXT NOT NULL UNIQUE,
-        email TEXT UNIQUE,
-        salary REAL NOT NULL,
-        hire_date TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      );
-
+      -- PAGOS
+      -- Si se borra el Niño, se borran TODOS sus pagos automáticamente (CASCADE).
       CREATE TABLE IF NOT EXISTS payments (
         id TEXT PRIMARY KEY NOT NULL,
         child_id TEXT NOT NULL,
@@ -65,22 +71,22 @@ export const initDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
         FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
       );
 
+      -- Índices
       CREATE INDEX IF NOT EXISTS idx_children_classroom ON children(classroom_id);
       CREATE INDEX IF NOT EXISTS idx_payments_child ON payments(child_id);
       CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(payment_date);
       CREATE INDEX IF NOT EXISTS idx_children_paid ON children(has_paid);
       CREATE INDEX IF NOT EXISTS idx_children_aseo ON children(has_aseo);
     `);
-
-    // MIGRACIÓN MANUAL (Por si la app ya estaba instalada en el dispositivo)
-    // Intentamos añadir la columna last_aseo_date si no existe.
+    
+    // Mantenimiento legacy (por si acaso, aunque recomiendo reinstalar app)
     try {
         await db.execAsync("ALTER TABLE children ADD COLUMN last_aseo_date TEXT;");
     } catch (e) {
-        // Ignoramos el error si la columna ya existe
+        // Ignoramos si ya existe
     }
 
-    console.log('Base de datos SQLite inicializada correctamente con reglas');
+    console.log('Base de datos SQLite inicializada correctamente con reglas CASCADE/SET NULL');
     return db;
   } catch (error) {
     console.error('Error inicializando base de datos:', error);

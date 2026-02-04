@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // <--- Agrega useCallback
 import { Alert, Linking } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native'; // <--- Importante
 import { getChildren, saveChild, deleteChild, getClassrooms } from '../../lib/storage';
 import { Child, Classroom } from '../types';
 
@@ -24,25 +25,37 @@ export const useChildren = () => {
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
-  // --- EFECTOS ---
-  useEffect(() => {
-    loadChildren();
-  }, []);
+  // --- LÓGICA DE CARGA ---
+  const loadChildren = async () => {
+    try {
+      const [childrenData, classroomsData] = await Promise.all([
+        getChildren(),
+        getClassrooms(),
+      ]);
+      setChildren(childrenData);
+      setClassrooms(classroomsData);
+    } catch (error) {
+      console.error("Error cargando datos de niños:", error);
+    }
+  };
 
+  // --- EFECTOS ---
+  
+  // CAMBIO PRINCIPAL: Usamos useFocusEffect
+  // Esto garantiza que si agregaste un Aula nueva en otra pantalla, 
+  // aparezca aquí al regresar.
+  useFocusEffect(
+    useCallback(() => {
+      loadChildren();
+    }, [])
+  );
+
+  // Este se mantiene igual (filtro local)
   useEffect(() => {
     filterChildren();
   }, [children, searchQuery]);
 
   // --- LÓGICA DE NEGOCIO ---
-  const loadChildren = async () => {
-    const [childrenData, classroomsData] = await Promise.all([
-      getChildren(),
-      getClassrooms(),
-    ]);
-    setChildren(childrenData);
-    setClassrooms(classroomsData);
-  };
-
   const getChildrenInClassroom = (classroomId: string) => {
     return children.filter(c => c.classroom_id === classroomId).length;
   };
@@ -94,7 +107,7 @@ export const useChildren = () => {
     resetForm();
   };
 
-  // --- VALIDACIONES (Intactas) ---
+  // --- VALIDACIONES ---
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
 
@@ -126,10 +139,12 @@ export const useChildren = () => {
       newErrors.address = 'La dirección es obligatoria';
     }
 
+    // Validación de Capacidad de Aula
     if (formData.classroom_id) {
       const selectedClassroom = classrooms.find(c => c.id === formData.classroom_id);
       if (selectedClassroom) {
         const currentChildren = getChildrenInClassroom(selectedClassroom.id);
+        // Si estamos editando y el niño YA estaba en esta aula, no contamos su propio cupo como "nuevo"
         const childrenInThisClassroomExcludingCurrent = editingChild && editingChild.classroom_id === selectedClassroom.id 
           ? currentChildren - 1 
           : currentChildren;
@@ -144,14 +159,14 @@ export const useChildren = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // --- ACCIONES (Guardar, Eliminar, WhatsApp) ---
+  // --- ACCIONES ---
   const handleSave = async () => {
     if (!validateForm()) {
       Alert.alert('Error', 'Por favor corrige los errores en el formulario');
       return;
     }
     
-    // Validación extra de seguridad para el aula llena al guardar
+    // Doble chequeo de capacidad al guardar
     if (formData.classroom_id) {
       const selectedClassroom = classrooms.find(c => c.id === formData.classroom_id);
       if (selectedClassroom) {
@@ -181,7 +196,7 @@ export const useChildren = () => {
     };
 
     await saveChild(childData);
-    await loadChildren();
+    await loadChildren(); // Recargamos lista local
     closeModal();
   };
 
@@ -196,7 +211,7 @@ export const useChildren = () => {
           style: 'destructive',
           onPress: async () => {
             await deleteChild(child.id);
-            await loadChildren();
+            await loadChildren(); // Recargamos lista local
           }
         },
       ]
@@ -231,7 +246,6 @@ export const useChildren = () => {
     );
   };
 
-  // Retornamos todo lo que la vista necesita
   return {
     children,
     classrooms,

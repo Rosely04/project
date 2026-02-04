@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // Agrega useCallback
 import { Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native'; // <--- IMPORTANTE
 import { getChildren, getPayments, savePayment } from '../../lib/storage';
 import { Child, Payment } from '../types';
 
@@ -13,25 +14,34 @@ export const usePayments = () => {
   const [filter, setFilter] = useState<PaymentFilter>('all');
   const [standardPayment, setStandardPayment] = useState(2500);
 
-  // --- EFECTOS ---
-  useEffect(() => {
-    loadData();
-  }, []);
+  // --- LOGICA DE DATOS ---
+  const loadData = async () => {
+    try {
+      const [childrenData, paymentsData] = await Promise.all([
+        getChildren(),
+        getPayments(),
+      ]);
+      setChildren(childrenData);
+      setPayments(paymentsData);
+    } catch (error) {
+      console.error("Error cargando datos de pagos:", error);
+    }
+  };
 
+  // --- EFECTOS ---
+
+  // REEMPLAZO: En lugar de useEffect, usamos useFocusEffect
+  // Esto hará que loadData se ejecute cada vez que entres a esta pantalla
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  // Mantenemos el filtro reactivo
   useEffect(() => {
     filterChildren();
   }, [children, filter]);
-
-  // --- LOGICA DE DATOS ---
-  const loadData = async () => {
-    // Al cargar, getChildren verifica internamente las fechas
-    const [childrenData, paymentsData] = await Promise.all([
-      getChildren(),
-      getPayments(),
-    ]);
-    setChildren(childrenData);
-    setPayments(paymentsData);
-  };
 
   const filterChildren = () => {
     let filtered = children;
@@ -48,7 +58,7 @@ export const usePayments = () => {
     if (child.has_paid) {
       Alert.alert(
         'Pago ya registrado',
-        `El pago de ${child.name} ya está registrado y no se puede modificar hasta el próximo mes.`,
+        `El pago de ${child.name} ya está registrado.`,
         [{ text: 'Entendido' }]
       );
       return;
@@ -65,15 +75,14 @@ export const usePayments = () => {
         created_at: new Date().toISOString(),
       };
       
-      // savePayment arrojará error si ya pagó en los últimos 30 días
       await savePayment(payment);
-      await loadData(); // Recargamos la UI
+      await loadData(); // Recargamos la UI tras el pago
     } catch (error: any) {
       Alert.alert('No permitido', error.message);
     }
   };
 
-  // --- CALCULOS Y ESTADISTICAS ---
+  // --- CALCULOS ---
   const stats = {
     paid: children.filter(child => child.has_paid).length,
     unpaid: children.filter(child => !child.has_paid).length,
@@ -91,6 +100,7 @@ export const usePayments = () => {
     standardPayment,
     handlePayment,
     stats,
-    potentialRevenue
+    potentialRevenue,
+    refreshData: loadData // Exportamos esto por si quieres poner un "Pull to Refresh"
   };
 };

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react'; // Solo agregamos useCallback
 import { Alert, Linking } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native'; // Solo agregamos useFocusEffect
 import { getWorkers, saveWorker, deleteWorker } from '../../lib/storage';
 import { Worker } from '../types';
 
@@ -20,22 +21,26 @@ export const useWorkers = () => {
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
-  // --- EFECTOS ---
-  useEffect(() => {
-    loadWorkers();
-  }, []);
-
   // --- LOGICA DE CARGA ---
-  const loadWorkers = async () => {
+  // Envolvemos esto en useCallback para que funcione con el refresco de pantalla
+  const loadWorkers = useCallback(async () => {
     const data = await getWorkers();
     setWorkers(data);
-  };
+  }, []);
+
+  // --- EFECTOS ---
+  // Cambiamos useEffect por useFocusEffect para que refresque al volver
+  useFocusEffect(
+    useCallback(() => {
+      loadWorkers();
+    }, [loadWorkers])
+  );
 
   const getTotalSalaries = (): number => {
     return workers.reduce((sum: number, worker: Worker) => sum + worker.salary, 0);
   };
 
-  // --- LOGICA DEL FORMULARIO ---
+  // --- LOGICA DEL FORMULARIO (Sin cambios) ---
   const resetForm = () => {
     setFormData({
       name: '',
@@ -129,7 +134,7 @@ export const useWorkers = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // --- ACCIONES (Guardar, Borrar, Contactar) ---
+  // --- ACCIONES (Sin cambios en lógica interna) ---
   const handleSave = async () => {
     if (!validateForm()) {
       Alert.alert('Error', 'Por favor corrige los errores en el formulario');
