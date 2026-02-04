@@ -35,7 +35,7 @@ export default function PaymentsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
+      {}
       <View style={styles.header}>
         <Text style={styles.title}>Gestión de Pagos</Text>
         <View style={styles.statsContainer}>
@@ -51,22 +51,22 @@ export default function PaymentsScreen() {
         </View>
       </View>
 
-      {/* FILTROS */}
+      {}
       <View style={styles.filtersContainer}>
         <FilterButton filterType="all" label="Todos" />
         <FilterButton filterType="paid" label="Pagaron" />
         <FilterButton filterType="unpaid" label="Sin pagar" />
       </View>
 
-      {/* LISTA */}
+      {}
       <ScrollView style={styles.content}>
         {filteredChildren.length === 0 ? (
           <View style={styles.emptyState}>
             <CreditCard size={48} color="#D1D5DB" />
             <Text style={styles.emptyText}>
               {filter === 'paid' ? 'No hay niños que hayan pagado' : 
-               filter === 'unpaid' ? 'Todos los niños han pagado' :
-               'No hay niños registrados'}
+              filter === 'unpaid' ? 'Todos los niños han pagado' :
+              'No hay niños registrados'}
             </Text>
           </View>
         ) : (

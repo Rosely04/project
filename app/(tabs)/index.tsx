@@ -1,8 +1,6 @@
-//Dashboard principal
-// correr :npx.cmd expo start
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react'; // 1. Agrega useCallback
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { useFocusEffect } from 'expo-router'; // 2. Importa useFocusEffect
 import { getChildren, getWorkers, getClassrooms, getFinancialSummary } from '../../lib/storage';
 import { Users, CreditCard, DollarSign, UserCheck, Droplets, School } from 'lucide-react-native';
 
@@ -32,35 +30,33 @@ export default function Dashboard() {
     totalClassrooms: 0,
     childrenWithoutClassroom: 0,
   });
+
   const [refreshing, setRefreshing] = useState(false);
 
   const loadStats = async () => {
     try {
-      // 1. Obtenemos datos de las tablas
       const [children, workers, classrooms, financialData] = await Promise.all([
-        getChildren(),    // <- Verifica si los niños deben renovar pago/aseo automáticamente
+        getChildren(),
         getWorkers(),
         getClassrooms(),
-        getFinancialSummary(), // <- Calcula ingresos acumulados y gasto acumulado de salarios
+        getFinancialSummary(),
       ]);
 
-      // 2. Cálculos en frontend
       const childrenPaid = children.filter(child => child.has_paid).length;
       const childrenUnpaid = children.length - childrenPaid;
       const childrenWithAseo = children.filter(child => child.has_aseo).length;
       const childrenWithoutAseo = children.length - childrenWithAseo;
       const childrenWithoutClassroom = children.filter(child => !child.classroom_id).length;
 
-      // 3. Setear estados con la lógica corregida
       setStats({
         totalChildren: children.length,
         childrenPaid,
         childrenUnpaid,
         childrenWithAseo,
         childrenWithoutAseo,
-        totalRevenue: financialData.totalRevenue, // Dinero histórico total
+        totalRevenue: financialData.totalRevenue,
         totalWorkers: workers.length,
-        totalSalaries: financialData.totalSalariesExpenses, // Salarios acumulados históricos
+        totalSalaries: financialData.totalSalariesExpenses,
         totalClassrooms: classrooms.length,
         childrenWithoutClassroom,
       });
@@ -69,15 +65,19 @@ export default function Dashboard() {
     }
   };
 
+  // 3. ESTE ES EL CAMBIO CLAVE:
+  // Se ejecuta cada vez que la pantalla obtiene el foco (al entrar o volver atrás)
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [])
+  );
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadStats();
     setRefreshing(false);
   };
-
-  useEffect(() => {
-    loadStats();
-  }, []);
 
   const StatCard = ({ icon, title, value, color = '#3B82F6' }: { icon: React.ReactNode; title: string; value: string | number; color?: string }) => (
     <View style={[styles.statCard, { borderLeftColor: color }]}>
@@ -92,12 +92,13 @@ export default function Dashboard() {
   );
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
+      {/* ... El resto de tu renderizado se queda igual ... */}
       <View style={styles.header}>
         <Text style={styles.title}>Dashboard</Text>
         <Text style={styles.subtitle}>Resumen del Círculo Infantil</Text>
@@ -204,8 +205,8 @@ export default function Dashboard() {
   );
 }
 
-// TU ESTILO ORIGINAL INTACTO
 const styles = StyleSheet.create({
+  // ... tus estilos se mantienen igual ...
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',

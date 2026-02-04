@@ -5,22 +5,21 @@ import { CustomTabBar } from '../../src/components/navigation/CustomTabBar';
 import { FloatingMenu } from '../../src/components/navigation/FloatingMenu';
 
 export default function TabLayout() {
-  // 1. Usamos el Hook (ViewModel)
   const { menuVisible, toggleMenu, closeMenu, handleNavigation } = useNavigationMenu();
 
   return (
     <>
-      {/* 2. Menú Flotante (Componente Visual) */}
+      {}
       <FloatingMenu 
         visible={menuVisible} 
         onClose={closeMenu} 
         onNavigate={handleNavigation} 
       />
 
-      {/* 3. Configuración de Tabs */}
+      {}
       <Tabs
         tabBar={props => (
-          // Pasamos la función del hook al componente de la barra
+        
           <CustomTabBar {...props} onToggleMenu={toggleMenu} />
         )}
         screenOptions={{ headerShown: false }}

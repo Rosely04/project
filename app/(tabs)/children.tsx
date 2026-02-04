@@ -5,7 +5,7 @@ import { useChildren } from '../../src/hooks/useChildren';
 import { ChildCard } from '../../src/components/children/ChildCard';
 
 export default function ChildrenScreen() {
-  // Instanciamos el ViewModel
+
   const {
     classrooms,
     filteredChildren,
@@ -27,7 +27,7 @@ export default function ChildrenScreen() {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
+      {}
       <View style={styles.header}>
         <Text style={styles.title}>Gestión de Niños</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
@@ -35,7 +35,7 @@ export default function ChildrenScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* BUSCADOR */}
+      {}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Search size={20} color="#6B7280" />
@@ -48,7 +48,7 @@ export default function ChildrenScreen() {
         </View>
       </View>
 
-      {/* LISTA DE NIÑOS */}
+      {}
       <ScrollView style={styles.content}>
         {filteredChildren.length === 0 ? (
           <View style={styles.emptyState}>
@@ -71,7 +71,7 @@ export default function ChildrenScreen() {
         )}
       </ScrollView>
 
-      {/* MODAL / FORMULARIO */}
+      {}
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -87,7 +87,7 @@ export default function ChildrenScreen() {
           </View>
 
           <ScrollView style={styles.modalContent}>
-            {/* INPUT: NOMBRE */}
+            {}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Nombre del Niño</Text>
               <TextInput
@@ -102,7 +102,7 @@ export default function ChildrenScreen() {
               {errors.name && <Text style={styles.errorText}>{errors.name}</Text>} 
             </View>
 
-            {/* INPUT: EDAD */}
+            {}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Edad</Text>
               <TextInput
@@ -121,7 +121,7 @@ export default function ChildrenScreen() {
               {errors.age && <Text style={styles.errorText}>{errors.age}</Text>}
             </View>
 
-            {/* INPUT: PADRE */}
+            {}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Nombre del Padre/Madre</Text>
               <TextInput
@@ -136,7 +136,7 @@ export default function ChildrenScreen() {
               {errors.parent_name && <Text style={styles.errorText}>{errors.parent_name}</Text>}
             </View>
 
-            {/* INPUT: TELEFONO */}
+            {}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Teléfono</Text>
               <TextInput
@@ -145,15 +145,13 @@ export default function ChildrenScreen() {
                 onChangeText={(text) => {
                   let formattedText = text;
                   if (text && !text.startsWith('+53')) {
-                     // Lógica simple para mantener +53 si el usuario borra
-                     if(text.length < 3) formattedText = '+53';
+                    if(text.length < 3) formattedText = '+53';
                   } else if (text) {
-                     // Solo números después del +53
-                     const prefix = text.substring(0, 3);
-                     const numbers = text.substring(3).replace(/[^0-9]/g, '');
-                     formattedText = prefix + numbers.slice(0, 8);
+                    const prefix = text.substring(0, 3);
+                    const numbers = text.substring(3).replace(/[^0-9]/g, '');
+                    formattedText = prefix + numbers.slice(0, 8);
                   } else {
-                     formattedText = '+53';
+                    formattedText = '+53';
                   }
                   
                   setFormData({...formData, parent_phone: formattedText});
@@ -166,7 +164,7 @@ export default function ChildrenScreen() {
               {errors.parent_phone && <Text style={styles.errorText}>{errors.parent_phone}</Text>}
             </View>
 
-            {/* INPUT: DIRECCION */}
+            {}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Dirección</Text>
               <TextInput
@@ -183,7 +181,7 @@ export default function ChildrenScreen() {
               {errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
             </View>
 
-            {/* INPUT: AULA (PICKER PERSONALIZADO) */}
+            {}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Aula</Text>
               <View style={styles.pickerContainer}>
@@ -281,7 +279,7 @@ export default function ChildrenScreen() {
   );
 }
 
-// Estilos generales de la pantalla
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 60, backgroundColor: '#3B82F6' },

@@ -30,7 +30,7 @@ export default function ClassroomsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
+      {}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Gestión de Aulas</Text>
@@ -44,7 +44,7 @@ export default function ClassroomsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* LISTA DE AULAS */}
+      {}
       <ScrollView style={styles.content}>
         {classrooms.length === 0 ? (
           <View style={styles.emptyState}>
@@ -66,7 +66,7 @@ export default function ClassroomsScreen() {
         )}
       </ScrollView>
 
-      {/* MODAL AGREGAR / EDITAR */}
+      {}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -100,7 +100,7 @@ export default function ClassroomsScreen() {
               {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
             </View>
 
-            {/* DROPDOWN MAESTRA */}
+            {}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Maestra a Cargo</Text>
               <TouchableOpacity
@@ -214,7 +214,7 @@ export default function ClassroomsScreen() {
         </View>
       </Modal>
 
-      {/* MODAL DETALLES */}
+      {}
       <Modal
         visible={detailModalVisible}
         animationType="slide"

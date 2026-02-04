@@ -24,7 +24,7 @@ export default function WorkersScreen() {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
+      {}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Trabajadores</Text>
@@ -43,7 +43,7 @@ export default function WorkersScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* LISTA DE TRABAJADORES */}
+      {}
       <ScrollView style={styles.content}>
         {workers.length === 0 ? (
           <View style={styles.emptyState}>
@@ -65,7 +65,7 @@ export default function WorkersScreen() {
         )}
       </ScrollView>
 
-      {/* MODAL AGREGAR / EDITAR */}
+      {}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -119,7 +119,6 @@ export default function WorkersScreen() {
                 style={[styles.input, errors.phone && styles.inputError]}
                 value={formData.phone}
                 onChangeText={(text) => {
-                  // Lógica para forzar formato +53 (Mantenida en la vista para UX fluida)
                   let formattedText = text;
                   if (text) {
                     if (text.startsWith('+53')) {

@@ -5,7 +5,7 @@ import { useAseo, AseoFilter } from '../../src/hooks/useAseo';
 import { ChildAseoCard } from '../../src/components/aseo/ChildAseoCard';
 
 export default function AseoScreen() {
-  // Instanciamos el ViewModel
+  
   const {
     filteredChildren,
     filter,
@@ -16,7 +16,6 @@ export default function AseoScreen() {
     stats
   } = useAseo();
 
-  // Componente interno pequeño para los botones de filtro
   const FilterButton = ({ filterType, label }: { filterType: AseoFilter; label: string }) => (
     <TouchableOpacity
       style={[
@@ -36,7 +35,7 @@ export default function AseoScreen() {
 
   return (
     <View style={styles.container}>
-      {/* HEADER con Estadísticas */}
+      {}
       <View style={styles.header}>
         <Text style={styles.title}>Gestión de Aseo</Text>
         <View style={styles.statsContainer}>
@@ -52,14 +51,14 @@ export default function AseoScreen() {
         </View>
       </View>
 
-      {/* FILTROS */}
+      {}
       <View style={styles.filtersContainer}>
         <FilterButton filterType="all" label="Todos" />
         <FilterButton filterType="with_aseo" label="Con aseo" />
         <FilterButton filterType="without_aseo" label="Sin aseo" />
       </View>
 
-      {/* LISTA */}
+      {}
       <ScrollView 
         style={styles.content}
         refreshControl={
@@ -89,7 +88,6 @@ export default function AseoScreen() {
   );
 }
 
-// Estilos de la pantalla (layout, header, filtros, empty state)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
