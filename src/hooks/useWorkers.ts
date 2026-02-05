@@ -152,9 +152,14 @@ export const useWorkers = () => {
       created_at: editingWorker?.created_at || new Date().toISOString(),
     };
 
-    await saveWorker(workerData);
-    await loadWorkers();
-    closeModal();
+   try {
+         await saveWorker(workerData); 
+         await loadWorkers(); 
+         closeModal();         
+         
+       } catch (error: any) {
+         Alert.alert('Error al guardar', 'El trabajador ya está registrado.');
+       }
   };
 
   const handleDelete = (worker: Worker) => {

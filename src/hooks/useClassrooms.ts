@@ -142,13 +142,10 @@ export const useClassrooms = () => {
 
     try {
       await saveClassroom(classroomData);
-      
-      // Actualización optimista o recarga
       await loadData();
       closeModal();
     } catch (error) {
-      console.error("Error guardando aula:", error);
-      Alert.alert('Error al guardar', 'Verifica que el nombre no esté repetido o intente nuevamente.');
+      Alert.alert('Error al guardar', 'El nombre del aula ya esta registrada.');
     }
   };
 

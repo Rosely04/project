@@ -73,7 +73,7 @@ export const getChildren = async (): Promise<Child[]> => {
 
     return updatedChildren;
   } catch (error) {
-    console.error('Error getting children:', error);
+    //console.error('Error getting children:', error);
     return [];
   }
 };
@@ -81,9 +81,6 @@ export const getChildren = async (): Promise<Child[]> => {
 export const saveChild = async (child: Child): Promise<void> => {
   try {
     const db = await getDatabase();
-
-    // 1. NUEVO: Validar si el teléfono del padre coincide con el de un TRABAJADOR
-    // Si un maestro tiene el número 5555, un padre no puede registrarse con el 5555
     const workerCheck = await db.getFirstAsync(
       'SELECT id FROM workers WHERE phone = ? LIMIT 1', 
       [child.parent_phone]
@@ -117,18 +114,17 @@ export const saveChild = async (child: Child): Promise<void> => {
       );
     }
   } catch (error) {
-    console.error('Error saving child:', error);
+
     throw error;
   }
 };
 
-// BORRADO SIMPLIFICADO: La DB se encarga de borrar pagos y aseo
 export const deleteChild = async (childId: string): Promise<void> => {
   try {
     const db = await getDatabase();
     await db.runAsync('DELETE FROM children WHERE id = ?', [childId]);
   } catch (error) {
-    console.error('Error deleting child:', error);
+   // console.error('Error deleting child:', error);
     throw error;
   }
 };
@@ -206,7 +202,7 @@ export const saveWorker = async (worker: Worker): Promise<void> => {
       );
     }
   } catch (error) {
-    console.error('Error saving worker:', error);
+    //console.error('Error saving worker:', error);
     throw error;
   }
 };
@@ -216,9 +212,6 @@ export const deleteWorker = async (workerId: string): Promise<void> => {
   try {
     const db = await getDatabase();
     
-    // Primero, limpiamos manualmente el 'teacher_name' en las aulas
-    // SQLite borrará el 'teacher_id' automáticamente (SET NULL), 
-    // pero debemos quitar el texto del nombre para que la UI lo vea vacío.
     await db.runAsync(
       'UPDATE classrooms SET teacher_id = NULL, teacher_name = "" WHERE teacher_id = ?', 
       [workerId]
@@ -226,9 +219,10 @@ export const deleteWorker = async (workerId: string): Promise<void> => {
 
     // Luego borramos el trabajador
     await db.runAsync('DELETE FROM workers WHERE id = ?', [workerId]);
-  } catch (error) { throw error; }
+  } catch (error) { 
+    
+    throw error; }
 };
-// -------------------------------------
 
 // PAYMENTS
 
@@ -257,7 +251,7 @@ export const savePayment = async (payment: Payment): Promise<void> => {
     );
     await db.runAsync('UPDATE children SET has_paid = 1 WHERE id = ?', [payment.child_id]);
   } catch (error) {
-    console.error('Error saving payment:', error);
+    //console.error('Error saving payment:', error);
     throw error;
   }
 };
@@ -266,7 +260,8 @@ export const updateChildPaymentStatus = async (childId: string, hasPaid: boolean
   try {
     const db = await getDatabase();
     await db.runAsync('UPDATE children SET has_paid = ? WHERE id = ?', [hasPaid ? 1 : 0, childId]);
-  } catch (error) { throw error; }
+  } catch (error) { 
+    throw error; }
 };
 
 // ASEO
@@ -286,7 +281,7 @@ export const updateChildAseoStatus = async (childId: string, hasAseo: boolean): 
       await db.runAsync('UPDATE children SET has_aseo = 0 WHERE id = ?', [childId]);
     }
   } catch (error) {
-    console.error('Error aseo:', error);
+    //console.error('Error aseo:', error);
     throw error;
   }
 };
@@ -318,7 +313,8 @@ export const saveClassroom = async (classroom: Classroom): Promise<void> => {
         [classroom.id, classroom.name, classroom.teacher_id, classroom.teacher_name, classroom.max_capacity, classroom.created_at]
       );
     }
-  } catch (error) { throw error; }
+  } catch (error) {
+    throw error;}
 };
 
 // BORRADO SIMPLIFICADO: La DB actualiza niños a NULL automáticamente
@@ -326,12 +322,14 @@ export const deleteClassroom = async (classroomId: string): Promise<void> => {
   try {
     const db = await getDatabase();
     await db.runAsync('DELETE FROM classrooms WHERE id = ?', [classroomId]);
-  } catch (error) { throw error; }
+  } catch (error) { 
+    throw error; }
 };
 
 export const updateChildClassroom = async (childId: string, classroomId: string | undefined): Promise<void> => {
   try {
       const db = await getDatabase();
       await db.runAsync('UPDATE children SET classroom_id = ? WHERE id = ?', [classroomId || null, childId]);
-  } catch (e) { throw e; }
+  } catch (e) { 
+    throw e; }
 };

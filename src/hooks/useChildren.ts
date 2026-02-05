@@ -3,6 +3,7 @@ import { Alert, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native'; // <--- Importante
 import { getChildren, saveChild, deleteChild, getClassrooms } from '../../lib/storage';
 import { Child, Classroom } from '../types';
+import { WorkerCard } from '../components/workers/WorkerCard';
 
 export const useChildren = () => {
   // --- ESTADOS ---
@@ -195,10 +196,15 @@ export const useChildren = () => {
       created_at: editingChild?.created_at || new Date().toISOString(),
     };
 
-    await saveChild(childData);
-    await loadChildren(); // Recargamos lista local
-    closeModal();
-  };
+  try {
+      await saveChild(childData); 
+      await loadChildren(); 
+      closeModal();         
+      
+    } catch (error: any) {
+      Alert.alert('Atención', error.message);
+    }
+  }; 
 
   const handleDelete = (child: Child) => {
     Alert.alert(
