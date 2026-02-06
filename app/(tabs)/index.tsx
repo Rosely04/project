@@ -65,8 +65,7 @@ export default function Dashboard() {
     }
   };
 
-  // 3. ESTE ES EL CAMBIO CLAVE:
-  // Se ejecuta cada vez que la pantalla obtiene el foco (al entrar o volver atrás)
+
   useFocusEffect(
     useCallback(() => {
       loadStats();
@@ -98,7 +97,7 @@ export default function Dashboard() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      {/* ... El resto de tu renderizado se queda igual ... */}
+      {}
       <View style={styles.header}>
         <Text style={styles.title}>Dashboard</Text>
         <Text style={styles.subtitle}>Resumen del Círculo Infantil</Text>

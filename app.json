@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Mi Círculo",
-    "slug": "mi-círculo",
+    "slug": "mi-crculo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -24,6 +24,16 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ad822c2c-719b-4f6b-8ac5-2ced43bcdcce"
+      }
+    },
+    "owner": "rosy0411",
+    "android": {
+      "package": "com.rosy0411.micrculo"
     }
   }
 }
