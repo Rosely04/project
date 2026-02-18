@@ -26,7 +26,7 @@ export default function TabLayout() {
       >
         <Tabs.Screen name="index" options={{ title: 'Dashboard' }} />
         <Tabs.Screen name="children" options={{ title: 'Niños' }} />
-        <Tabs.Screen name="classrooms" options={{ title: 'Aulas' }} />
+        <Tabs.Screen name="classrooms" options={{ title: 'Salón' }} />
         
         {/* Rutas ocultas */}
         <Tabs.Screen name="workers" options={{ title: 'Personal' }} />

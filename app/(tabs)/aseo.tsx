@@ -37,7 +37,7 @@ export default function AseoScreen() {
     <View style={styles.container}>
       {}
       <View style={styles.header}>
-        <Text style={styles.title}>Gestión de Aseo</Text>
+        <Text style={styles.title}>Control de Aseo</Text>
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{stats.withAseo}</Text>

@@ -61,7 +61,7 @@ export default function Dashboard() {
         childrenWithoutClassroom,
       });
     } catch (error) {
-      console.error('Error loading stats:', error);
+     // console.error('Error loading stats:', error);
     }
   };
 
@@ -162,14 +162,14 @@ export default function Dashboard() {
 
         <StatCard
           icon={<School size={24} color="#F59E0B" />}
-          title="Total de Aulas"
+          title="Total de Salones"
           value={stats.totalClassrooms}
           color="#F59E0B"
         />
 
         <StatCard
           icon={<Users size={24} color="#EF4444" />}
-          title="Niños sin Aula"
+          title="Niños sin Salón"
           value={stats.childrenWithoutClassroom}
           color="#EF4444"
         />

@@ -108,7 +108,7 @@ export default function WorkersScreen() {
                   setFormData({...formData, position: text});
                   if (errors.position) setErrors({...errors, position: ''});
                 }}
-                placeholder="Ej: Maestra, Directora, Auxiliar"
+                placeholder="Ej: Educadora, Directora, Auxiliar"
               />
               {errors.position && <Text style={styles.errorText}>{errors.position}</Text>}
             </View>

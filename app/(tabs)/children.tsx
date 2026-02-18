@@ -29,7 +29,7 @@ export default function ChildrenScreen() {
     <View style={styles.container}>
       {}
       <View style={styles.header}>
-        <Text style={styles.title}>Gestión de Niños</Text>
+        <Text style={styles.title}>Control de Niños</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
           <Plus size={24} color="#FFFFFF" />
         </TouchableOpacity>

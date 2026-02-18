@@ -33,8 +33,8 @@ export default function ClassroomsScreen() {
       {}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>Gestión de Aulas</Text>
-          <Text style={styles.subtitle}>{classrooms.length} Aulas Registradas</Text>
+          <Text style={styles.title}>Control de Salón</Text>
+          <Text style={styles.subtitle}>{classrooms.length} Salones Registrados</Text>
         </View>
         <TouchableOpacity
           style={styles.addButton}
@@ -49,8 +49,8 @@ export default function ClassroomsScreen() {
         {classrooms.length === 0 ? (
           <View style={styles.emptyState}>
             <School size={48} color="#D1D5DB" />
-            <Text style={styles.emptyText}>No hay aulas registradas</Text>
-            <Text style={styles.emptySubtext}>Presiona el botón + para agregar la primera aula</Text>
+            <Text style={styles.emptyText}>No hay salones registrados</Text>
+            <Text style={styles.emptySubtext}>Presiona el botón + para agregar el primer salón</Text>
           </View>
         ) : (
           classrooms.map((classroom) => (
@@ -78,7 +78,7 @@ export default function ClassroomsScreen() {
               <Text style={styles.cancelButton}>Cancelar</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>
-              {editingClassroom ? 'Editar Aula' : 'Agregar Aula'}
+              {editingClassroom ? 'Editar Salón' : 'Agregar Salón'}
             </Text>
             <TouchableOpacity onPress={handleSave}>
               <Text style={styles.saveButton}>Guardar</Text>
@@ -87,7 +87,7 @@ export default function ClassroomsScreen() {
 
           <ScrollView style={styles.modalContent}>
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Nombre del Aula</Text>
+              <Text style={styles.label}>Nombre del Salón</Text>
               <TextInput
                 style={[styles.input, errors.name && styles.inputError]}
                 value={formData.name}
@@ -95,14 +95,14 @@ export default function ClassroomsScreen() {
                   setFormData({...formData, name: text});
                   if (errors.name) setErrors({...errors, name: ''});
                 }}
-                placeholder="Ej: Aula 1, Preescolar A, etc."
+                placeholder="Ej: Salón 1, Preescolar A, etc."
               />
               {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
             </View>
 
             {}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Maestra a Cargo</Text>
+              <Text style={styles.label}>Educadora a Cargo</Text>
               <TouchableOpacity
                 style={styles.dropdownButton}
                 onPress={() => setTeacherDropdownVisible(!teacherDropdownVisible)}
@@ -110,8 +110,8 @@ export default function ClassroomsScreen() {
                 <View style={styles.dropdownButtonContent}>
                   <Text style={styles.dropdownButtonText}>
                     {formData.teacher_id
-                      ? workers.find(w => w.id === formData.teacher_id)?.name || 'Seleccionar maestra'
-                      : 'Seleccionar maestra'}
+                      ? workers.find(w => w.id === formData.teacher_id)?.name || 'Seleccionar educadora'
+                      : 'Seleccionar educadora'}
                   </Text>
                 </View>
                 <Text style={styles.dropdownArrow}>
@@ -207,7 +207,7 @@ export default function ClassroomsScreen() {
               {errors.max_capacity ? (
                 <Text style={styles.errorText}>{errors.max_capacity}</Text>
               ) : (
-                <Text style={styles.helperText}>Máximo 15 niños por aula</Text>
+                <Text style={styles.helperText}>Máximo 15 niños por salón</Text>
               )}
             </View>
           </ScrollView>
@@ -225,22 +225,22 @@ export default function ClassroomsScreen() {
             <TouchableOpacity onPress={closeDetailModal}>
               <Text style={styles.cancelButton}>Cerrar</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Detalles del Aula</Text>
+            <Text style={styles.modalTitle}>Detalles del Salón</Text>
             <View style={{ width: 60 }} />
           </View>
 
           {selectedClassroom && (
             <ScrollView style={styles.modalContent}>
               <View style={styles.detailSection}>
-                <Text style={styles.detailSectionTitle}>Información del Aula</Text>
+                <Text style={styles.detailSectionTitle}>Información del Salón</Text>
                 <View style={styles.detailCard}>
                   <Text style={styles.detailLabel}>Nombre:</Text>
                   <Text style={styles.detailValue}>{selectedClassroom.name}</Text>
                 </View>
                 <View style={styles.detailCard}>
-                  <Text style={styles.detailLabel}>Maestra a Cargo:</Text>
+                  <Text style={styles.detailLabel}>Educadora a Cargo:</Text>
                   <Text style={styles.detailValue}>
-                    {selectedClassroom.teacher_name || 'Sin maestra asignada'}
+                    {selectedClassroom.teacher_name || 'Sin educadora asignada'}
                   </Text>
                 </View>
                 <View style={styles.detailCard}>
@@ -253,12 +253,12 @@ export default function ClassroomsScreen() {
 
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>
-                  Niños en el Aula ({getChildrenInClassroom(selectedClassroom.id).length})
+                  Niños en el Salón ({getChildrenInClassroom(selectedClassroom.id).length})
                 </Text>
                 {getChildrenInClassroom(selectedClassroom.id).length === 0 ? (
                   <View style={styles.emptyChildrenState}>
                     <Users size={32} color="#D1D5DB" />
-                    <Text style={styles.emptyChildrenText}>No hay niños en esta aula</Text>
+                    <Text style={styles.emptyChildrenText}>No hay niños en este salón</Text>
                   </View>
                 ) : (
                   getChildrenInClassroom(selectedClassroom.id).map((child) => (
@@ -272,7 +272,7 @@ export default function ClassroomsScreen() {
                         onPress={() => {
                           Alert.alert(
                             'Remover niño',
-                            `¿Deseas remover a ${child.name} de esta aula?`,
+                            `¿Deseas remover a ${child.name} de este salón?`,
                             [
                               { text: 'Cancelar', style: 'cancel' },
                               {
