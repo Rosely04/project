@@ -1,26 +1,7 @@
 import { getDatabase } from './database';
 import { Child, Worker, Payment, Classroom } from '../src/types';
+import { hasPassed30Days, getMonthsWorked } from '../src/utils/dateHelpers';
 
-// HELPERS (Validaciones de fechas y reglas)
-
-const DAYS_30_IN_MS = 30 * 24 * 60 * 60 * 1000;
-
-const hasPassed30Days = (dateString: string | null | undefined): boolean => {
-  if (!dateString) return true; 
-  const date = new Date(dateString);
-  const now = new Date();
-  if (isNaN(date.getTime())) return true;
-  return (now.getTime() - date.getTime()) >= DAYS_30_IN_MS;
-};
-
-const getMonthsWorked = (hireDateStr: string): number => {
-  const hireDate = new Date(hireDateStr);
-  const now = new Date();
-  if (isNaN(hireDate.getTime()) || hireDate > now) return 0;
-  const diffTime = Math.abs(now.getTime() - hireDate.getTime());
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  return Math.floor(diffDays / 30) + 1; 
-};
 
 // CHILDREN FUNCTIONS
 

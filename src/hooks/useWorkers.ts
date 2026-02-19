@@ -3,6 +3,7 @@ import { Alert, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native'; // Solo agregamos useFocusEffect
 import { getWorkers, saveWorker, deleteWorker } from '../../lib/storage';
 import { Worker } from '../types';
+import { validateWorkerForm } from '../utils/validators';
 
 export const useWorkers = () => {
   // --- ESTADOS ---
@@ -80,58 +81,19 @@ export const useWorkers = () => {
   };
 
   // --- VALIDACIONES (Intactas) ---
-  const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+   const validateForm = () => {
+    // Usamos la función externa que ya probamos con Jest
+    const validation = validateWorkerForm(
+      formData.name,
+      formData.position,
+      formData.phone,
+      formData.email,
+      formData.salary,
+      formData.hire_date
+    );
 
-    // Validación Nombre Completo 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Nombre es obligatorio';
-    } else if (!/^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+$/.test(formData.name)) {
-      newErrors.name = 'El nombre solo puede contener letras y espacios';
-    }
-
-    // Validación Cargo 
-    if (!formData.position.trim()) {
-      newErrors.position = 'Cargo es obligatorio';
-    } else if (!/^[A-Za-zÁáÉéÍíÓóÚúÑñ\s]+$/.test(formData.position)) {
-      newErrors.position = 'El cargo solo puede contener letras';
-    }
-
-    // Validación Teléfono 
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'El teléfono es obligatorio';
-    } else if (!/^\+53\d{8}$/.test(formData.phone)) {
-      newErrors.phone = 'Formato: +53xxxxxxxx (8 números después del +53)';
-    }
-
-    // Validación Email (OPCIONAL)
-    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Formato de email inválido';
-    }
-
-    // Validación Salario
-    if (!formData.salary.trim()) {
-      newErrors.salary = 'Salario es obligatorio';
-    } else if (!/^\d+$/.test(formData.salary)) {
-      newErrors.salary = 'El salario solo puede contener números';
-    } else if (parseFloat(formData.salary) <= 0) {
-      newErrors.salary = 'El salario debe ser mayor a 0';
-    }
-
-    // Validación Fecha
-    if (!formData.hire_date.trim()) {
-      newErrors.hire_date = 'Fecha de contratación es obligatoria';
-    } else {
-      const date = new Date(formData.hire_date);
-      if (isNaN(date.getTime())) {
-        newErrors.hire_date = 'Fecha inválida';
-      } else if (date > new Date()) {
-        newErrors.hire_date = 'La fecha no puede ser futura';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(validation.errors);
+    return validation.isValid;
   };
 
   // --- ACCIONES (Sin cambios en lógica interna) ---

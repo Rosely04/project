@@ -99,8 +99,8 @@ export default function Dashboard() {
     >
       {}
       <View style={styles.header}>
-        <Text style={styles.title}>Dashboard</Text>
-        <Text style={styles.subtitle}>Resumen del Círculo Infantil</Text>
+        <Text style={styles.title}>Resumen</Text>
+        <Text style={styles.subtitle}>El rey David</Text>
       </View>
 
       <View style={styles.statsContainer}>

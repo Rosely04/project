@@ -1,21 +1,21 @@
-import { useState, useEffect, useCallback } from 'react'; // Agrega useCallback
+import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native'; // <--- IMPORTANTE
+import { useFocusEffect } from '@react-navigation/native';
 import { getChildren, getPayments, savePayment } from '../../lib/storage';
 import { Child, Payment } from '../types';
+// IMPORTAMOS LA LÓGICA DE PAGOS
+import { filterChildrenByPaymentStatus, calculatePaymentStats } from '../utils/paymentHelpers';
 
 export type PaymentFilter = 'all' | 'paid' | 'unpaid';
 
 export const usePayments = () => {
-  // --- ESTADOS ---
   const [children, setChildren] = useState<Child[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [filteredChildren, setFilteredChildren] = useState<Child[]>([]);
   const [filter, setFilter] = useState<PaymentFilter>('all');
   const [standardPayment, setStandardPayment] = useState(2500);
 
-  // --- LOGICA DE DATOS ---
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [childrenData, paymentsData] = await Promise.all([
         getChildren(),
@@ -23,44 +23,31 @@ export const usePayments = () => {
       ]);
       setChildren(childrenData);
       setPayments(paymentsData);
+      
+      // Aplicamos filtro inicial
+      setFilteredChildren(filterChildrenByPaymentStatus(childrenData, filter));
     } catch (error) {
-      console.error("Error cargando datos de pagos:", error);
+      console.error("Error cargando datos:", error);
     }
-  };
+  }, [filter]); // Dependencia filter para recargar si cambia (aunque lo manejamos abajo)
 
-  // --- EFECTOS ---
-
-  // REEMPLAZO: En lugar de useEffect, usamos useFocusEffect
-  // Esto hará que loadData se ejecute cada vez que entres a esta pantalla
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [])
+    }, [loadData])
   );
 
-  // Mantenemos el filtro reactivo
-  useEffect(() => {
-    filterChildren();
-  }, [children, filter]);
+  // Efecto para filtrar cuando cambia la data o el filtro
+  useFocusEffect(
+    useCallback(() => {
+      const filtered = filterChildrenByPaymentStatus(children, filter);
+      setFilteredChildren(filtered);
+    }, [children, filter])
+  );
 
-  const filterChildren = () => {
-    let filtered = children;
-    switch (filter) {
-      case 'paid': filtered = filtered.filter(child => child.has_paid); break;
-      case 'unpaid': filtered = filtered.filter(child => !child.has_paid); break;
-      default: break;
-    }
-    setFilteredChildren(filtered);
-  };
-
-  // --- LOGICA DE TRANSACCION ---
   const handlePayment = async (child: Child) => {
     if (child.has_paid) {
-      Alert.alert(
-        'Pago ya registrado',
-        `El pago de ${child.name} ya está registrado.`,
-        [{ text: 'Entendido' }]
-      );
+      Alert.alert('Aviso', `El pago de ${child.name} ya está registrado.`);
       return;
     }
 
@@ -76,18 +63,15 @@ export const usePayments = () => {
       };
       
       await savePayment(payment);
-      await loadData(); // Recargamos la UI tras el pago
+      await loadData(); // Recargamos la UI
+      Alert.alert('Éxito', 'Pago registrado correctamente');
     } catch (error: any) {
-      Alert.alert('No permitido', error.message);
+      Alert.alert('Error', error.message);
     }
   };
 
-  // --- CALCULOS ---
-  const stats = {
-    paid: children.filter(child => child.has_paid).length,
-    unpaid: children.filter(child => !child.has_paid).length,
-    total: children.length
-  };
+  // Usamos la función helper para estadísticas
+  const stats = calculatePaymentStats(children);
   
   const potentialRevenue = stats.paid * standardPayment;
 
@@ -101,6 +85,6 @@ export const usePayments = () => {
     handlePayment,
     stats,
     potentialRevenue,
-    refreshData: loadData // Exportamos esto por si quieres poner un "Pull to Refresh"
+    refreshData: loadData
   };
 };
